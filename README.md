@@ -8,7 +8,7 @@
 
 输入内容整理目标后，工作台集中展示任务计划、执行轨迹、草稿与发布结果。下图是离线模式的一次完整执行，输出保存为本地文档。
 
-![LLM Task Agent 工作台：任务完成后的执行轨迹、调用指标与来源草稿](evaluation/demo-preview.png)
+![LLM Task Agent 工作台：任务完成后的执行轨迹、调用指标与来源草稿](evaluation/demo-preview.jpg)
 
 - **执行轨迹**：逐步展示规划、检索、读取、生成、检查和发布，便于定位失败环节。
 - **调用指标**：查看工具调用次数与上限、活跃执行耗时、Token 与模型调用量。离线模式不调用模型，因此 Token 与模型成本为 0。
@@ -43,7 +43,7 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 <details>
 <summary>查看发布前确认界面</summary>
 
-![发布前确认：草稿已保存，等待用户确认后恢复执行](evaluation/approval-preview.png)
+![发布前确认：草稿已保存，等待用户确认后恢复执行](evaluation/approval-preview.jpg)
 
 </details>
 
@@ -54,7 +54,7 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 <details>
 <summary>查看预算耗尽后的停止状态</summary>
 
-![调用预算限制：计数达到 1 / 1 后停止后续工具调用](evaluation/budget-preview.png)
+![调用预算限制：计数达到 1 / 1 后停止后续工具调用](evaluation/budget-preview.jpg)
 
 </details>
 

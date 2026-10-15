@@ -1,0 +1,8 @@
+[
+  {"name":"正常内容整理", "query":"Agent", "scenario":"normal", "budget":6, "expected":"completed"},
+  {"name":"临时检索超时", "query":"Agent", "scenario":"transient_search", "budget":6, "expected":"completed"},
+  {"name":"草稿修正", "query":"Agent", "scenario":"empty_draft", "budget":6, "expected":"completed"},
+  {"name":"无匹配来源", "query":"不存在的主题", "scenario":"normal", "budget":6, "expected":"failed"},
+  {"name":"工具预算耗尽", "query":"Agent", "scenario":"normal", "budget":1, "expected":"failed"},
+  {"name":"发布前预算耗尽", "query":"Agent", "scenario":"normal", "budget":3, "expected":"failed"}
+]

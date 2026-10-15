@@ -1,0 +1,83 @@
+{
+  "generated_at": "2026-10-15T07:56:34.082722+00:00",
+  "mode": "demo",
+  "python": "3.12.14",
+  "langgraph": "1.2.15",
+  "note": "离线固定资料与模板；不衡量真实模型规划、生成质量或 Notion 可用性。耗时仅为本次本机记录。",
+  "scenario_pass_rate": 1.0,
+  "positive_task_completion_rate": 1.0,
+  "cases": [
+    {
+      "name": "正常内容整理",
+      "expected": "completed",
+      "actual": "completed",
+      "passed": true,
+      "seconds": 0.008614,
+      "tool_calls": 4,
+      "llm_calls": 0,
+      "tokens": 0,
+      "estimated_cost_usd": 0.0,
+      "error": ""
+    },
+    {
+      "name": "临时检索超时",
+      "expected": "completed",
+      "actual": "completed",
+      "passed": true,
+      "seconds": 0.007687,
+      "tool_calls": 5,
+      "llm_calls": 0,
+      "tokens": 0,
+      "estimated_cost_usd": 0.0,
+      "error": ""
+    },
+    {
+      "name": "草稿修正",
+      "expected": "completed",
+      "actual": "completed",
+      "passed": true,
+      "seconds": 0.007381,
+      "tool_calls": 5,
+      "llm_calls": 0,
+      "tokens": 0,
+      "estimated_cost_usd": 0.0,
+      "error": ""
+    },
+    {
+      "name": "无匹配来源",
+      "expected": "failed",
+      "actual": "failed",
+      "passed": true,
+      "seconds": 0.002158,
+      "tool_calls": 1,
+      "llm_calls": 0,
+      "tokens": 0,
+      "estimated_cost_usd": 0.0,
+      "error": "没有匹配资料，请更换标题检索词"
+    },
+    {
+      "name": "工具预算耗尽",
+      "expected": "failed",
+      "actual": "failed",
+      "passed": true,
+      "seconds": 0.002661,
+      "tool_calls": 1,
+      "llm_calls": 0,
+      "tokens": 0,
+      "estimated_cost_usd": 0.0,
+      "error": "工具调用预算耗尽"
+    },
+    {
+      "name": "发布前预算耗尽",
+      "expected": "failed",
+      "actual": "failed",
+      "passed": true,
+      "seconds": 0.005957,
+      "tool_calls": 3,
+      "llm_calls": 0,
+      "tokens": 0,
+      "estimated_cost_usd": 0.0,
+      "error": "发布前工具调用预算耗尽"
+    }
+  ]
+}

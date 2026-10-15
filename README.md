@@ -1,99 +1,142 @@
 # LLM Task Agent
 
-基于 **Python / LangGraph / FastAPI / SQLite** 的内容整理 Agent 原型，提供可视化工作台、RESTful API、持久化检查点、发布前中断恢复、有限重试和固定场景评测。
+基于 Python、LangGraph 与 FastAPI 的内容整理 Agent，以 Notion 笔记管理为应用场景，将资料检索、正文读取、草稿生成、结果检查与确认发布组织为可追踪的多步骤工作流。
 
-默认离线模式无需密钥，使用内置笔记与固定模板。真实模式接入支持工具调用的 LLM API 和 Notion API，代码及模拟 HTTP 契约测试已完成，尚未使用真实账号联调。不能把离线运行结果当作真实模型能力或线上效果。
+**技术栈：** Python · LangGraph · FastAPI · SQLite · LLM API · Notion API · Docker
 
-## 工作台预览
+[快速开始](#快速开始) · [工作流设计](#工作流设计) · [API 文档](#api-文档) · [测试与验证](#测试与验证)
 
-输入内容整理目标后，工作台集中展示任务计划、执行轨迹、草稿与发布结果。下图是离线模式的一次完整执行，输出保存为本地文档。
+## 工作台
 
-![LLM Task Agent 工作台：任务完成后的执行轨迹、调用指标与来源草稿](evaluation/demo-preview.jpg)
+工作台展示任务状态、工具调用记录、执行耗时与来源草稿。下图为离线模式完成内容整理并保存本地文档后的实际界面，指标保留工具调用次数、活跃执行耗时和 Token / 模型调用次数。
 
-- **执行轨迹**：逐步展示规划、检索、读取、生成、检查和发布，便于定位失败环节。
-- **调用指标**：查看工具调用次数与上限、活跃执行耗时、Token 与模型调用量。离线模式不调用模型，因此 Token 与模型调用量为 0。
-- **来源草稿**：查看整理结果及来源 ID，再决定是否发布。
+![任务完成后的工作台：三个运行指标、完整执行轨迹与来源草稿](docs/images/workspace-b916d47cd4.jpg)
 
-## 快速运行
+## 核心功能
 
-需要 Python 3.12。首次安装依赖需要网络。
+| 功能 | 实现方式 |
+| --- | --- |
+| 工作流编排 | LangGraph 节点与条件边组织规划、执行、检查、确认和发布 |
+| 任务状态管理 | State 传递目标、计划、来源资料、草稿、调用计数和错误信息 |
+| 持久化与恢复 | SQLite 检查点保存任务状态，支持发布确认点的跨进程恢复 |
+| 工具调用约束 | 校验步骤白名单与执行顺序，每次尝试计入调用预算 |
+| 有限重试与修正 | 临时读取或生成错误最多重试一次；草稿检查失败最多修正一次 |
+| 发布控制 | 用户确认后保存本地文档，或创建 Notion 子页面 |
+| API 服务 | 提供任务创建、状态查询、确认恢复与健康检查接口 |
+
+## 快速开始
+
+环境要求：Python 3.12。
 
 ```bash
+git clone https://github.com/XinzheGao/llm-task-agent.git
+cd llm-task-agent
 python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.lock.txt
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-打开 [演示工作台](http://127.0.0.1:8000)，API 文档位于 [Swagger UI](http://127.0.0.1:8000/docs)。当前交付目录已安装依赖，可直接使用 `.venv/bin/python` 启动。
+启动后访问 [工作台](http://127.0.0.1:8000) 或 [Swagger UI](http://127.0.0.1:8000/docs)。以上地址均为本机服务地址。
 
-## 三分钟演示
+### 运行模式
 
-1. 保持默认任务和检索词 `Agent`，点击“规划并执行任务”。
-2. 展示规划、检索、读取、生成与检查的执行轨迹，以及工具调用计数。此时草稿已保存，发布尚未执行。
-3. 停止服务并使用相同命令重启。刷新页面，在“最近的任务”中选择等待确认的任务，展示恢复出的草稿。
-4. 点击“确认发布并恢复执行”，任务完成。离线模式保存到本地 SQLite 演示文档表，不会写入 Notion。
-5. 选择“首次检索超时”，创建新任务，展示一次重试；选择“首次草稿不合格”，展示检查后的有限修正。
-6. 把工具调用上限改为 `1`，展示预算耗尽后停止执行；检索词改为不存在的主题，展示无资料时停止而不生成内容。
+| 模式 | 资料与生成方式 | 输出位置 |
+| --- | --- | --- |
+| `demo`（默认） | 内置笔记、固定计划与模板整理，无需密钥 | 本地 SQLite 文档表 |
+| `live` | LLM 生成受限计划与草稿，通过 Notion API 检索和读取资料 | 确认后创建 Notion 子页面 |
 
-### 发布前确认与恢复
+真实接口适配器已通过模拟 HTTP 契约测试，真实 LLM / Notion 账号联调待完成。下文截图与固定场景结果来自离线模式。
 
-生成草稿并通过检查后，任务停在“等待确认”状态。此时调用计数为 `3 / 6`，发布尚未执行；状态已保存到 SQLite。重启服务后可从历史任务重新打开，再确认发布并继续执行。
+### 操作流程
 
-<details>
-<summary>查看发布前确认界面</summary>
+1. 输入整理目标，使用标题检索词 `Agent` 和默认调用上限 `6` 创建任务。
+2. 查看执行轨迹、来源草稿和调用计数。检查通过后，任务进入“等待确认”。
+3. 确认发布，或重启服务后从历史任务重新打开，再继续执行。
+4. 切换验证场景，检查首次检索超时、草稿修正和预算耗尽时的处理结果。
 
-![发布前确认：草稿已保存，等待用户确认后恢复执行](evaluation/approval-preview.jpg)
-
-</details>
-
-### 调用预算限制
-
-将工具调用上限设为 `1` 后，任务只完成一次检索，随后停止。轨迹中显示 `budget` 节点和“工具调用预算耗尽”，后续读取、生成与发布均不会执行。
-
-<details>
-<summary>查看预算耗尽后的停止状态</summary>
-
-![调用预算限制：计数达到 1 / 1 后停止后续工具调用](evaluation/budget-preview.jpg)
-
-</details>
-
-以上均为本地离线模式的实际截图。截图展示工作流行为，真实 LLM / Notion 账号联调仍待完成。
-
-详细讲解见 [使用与架构说明](DEMO_GUIDE.md)。
-
-## 实现范围
-
-| 功能 | 当前实现 |
-| --- | --- |
-| 任务规划 | 离线模式固定计划；真实模式通过 LLM function calling 提交关键词、标题及受限步骤计划 |
-| 执行编排 | LangGraph 的 plan → execute → check → approval → publish；execute 依次调度 search/read/generate |
-| State / Context | 目标、计划、资料、草稿、计数、轨迹和错误通过 State 传递；SqliteSaver 按 thread_id 保存检查点 |
-| 中断与恢复 | 发布前调用 interrupt；重启后以同一 task_id 和 Command(resume=...) 继续执行，已完成的检索与生成不会重跑 |
-| 失败处理 | 临时读取/生成错误最多重试一次；正文与引用不合格最多修正一次；总工具调用次数有上限 |
-| 发布 | 用户确认后写入本地文档或 Notion 普通父页面下的新子页面 |
-| 可观测性 | 执行轨迹、逻辑工具调用数、模型请求数、Token、活跃耗时 |
-| 服务与部署 | FastAPI API、本地网页、Dockerfile 和 Compose；Docker 构建未在本次环境验证 |
-| 评测 | 6 个离线固定场景、12 项自动化测试；结果保存在 evaluation/results.json |
-
-这版规划器限定为 `search → read → generate` 的内容整理工作流，真实模型选择关键词和标题。它没有实现任意复杂任务规划、自主工具选择或动态重规划。长度与引用检查也不代表语义或事实正确性验证。
+## 工作流设计
 
 ```mermaid
 flowchart LR
-    A[目标输入] --> B[plan 规划]
+    A[任务目标] --> B[plan 规划]
     B --> C[execute 工具调度]
-    C --> D[check 正文和引用]
-    C -->|临时错误且预算允许| C
-    D -->|修正一次| C
-    D --> E[approval 中断等待确认]
-    E -->|同一 task_id 恢复| F[publish 发布]
-    C -.-> S[(SQLite checkpoint)]
-    E -.-> S
+    C --> D[check 草稿检查]
+    C -->|临时错误，最多重试一次| C
+    D -->|不通过，最多修正一次| C
+    D --> E[approval 等待确认]
+    E -->|确认恢复| F[publish 发布]
+    C -. 保存状态 .-> S[(SQLite checkpoint)]
+    E -. 保存状态 .-> S
 ```
 
-## 真实 LLM / Notion 配置
+执行层按 `search → read → generate` 调度工具。真实模式通过 `plan_workflow` function schema 接收模型提交的检索词、标题和步骤，并在服务端校验。当前规划范围限定为内容整理流程。
 
-复制 `.env.example` 为 `.env`，填写以下变量，然后重启服务：
+草稿检查要求正文不少于 100 字符，并包含每份来源的 ID。该规则检查输出结构与引用覆盖，不承担语义或事实正确性判断。
+
+### 发布确认与恢复
+
+草稿通过检查后，`interrupt()` 暂停工作流。状态按任务对应的 `thread_id` 保存到 SQLite；服务重启后，以相同 ID 和 `Command(resume=...)` 继续。正常流程下，已经完成的检索、读取与生成不会重复执行。
+
+<details>
+<summary>查看发布确认界面</summary>
+
+![发布前的确认状态：草稿已保存，工具调用计数为 3 / 6](docs/images/approval-0751f262bc.jpg)
+
+</details>
+
+### 调用预算
+
+工具调用前检查剩余预算，失败重试同样消耗调用次数。下例将上限设为 `1`：完成检索后停止，不继续读取、生成或发布。
+
+<details>
+<summary>查看预算耗尽后的任务状态</summary>
+
+![调用预算耗尽：计数达到 1 / 1 后停止后续工具调用](docs/images/budget-b462d2c11c.jpg)
+
+</details>
+
+## API 文档
+
+Swagger UI 提供请求参数、数据结构和响应说明。展开接口后，可通过 **Try it out → Execute** 发起请求。
+
+![Swagger UI：任务创建、查询、恢复与健康检查接口](docs/images/api-46f6fe0151.jpg)
+
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| `POST` | `/api/tasks` | 创建并执行任务 |
+| `GET` | `/api/tasks` | 查询最近 30 个任务 |
+| `GET` | `/api/tasks/{task_id}` | 查询状态、轨迹、草稿与调用指标 |
+| `POST` | `/api/tasks/{task_id}/resume` | 确认发布或取消任务 |
+| `GET` | `/api/health` | 查询服务状态与运行模式 |
+
+创建任务：
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/tasks \
+  -H 'Content-Type: application/json' \
+  -d '{"goal":"整理 Agent 开发笔记","query":"Agent","max_tool_calls":6}'
+```
+
+从响应复制 `task_id`，查询任务或确认恢复：
+
+```bash
+curl http://127.0.0.1:8000/api/tasks/任务ID
+
+curl -X POST http://127.0.0.1:8000/api/tasks/任务ID/resume \
+  -H 'Content-Type: application/json' \
+  -d '{"approved":true}'
+```
+
+`approved:false` 取消发布；真实模式下，`true` 将触发 Notion 写入。无效输入返回 `422`，未知任务返回 `404`，重复恢复已结束任务返回 `409`。请求同步执行，轨迹在响应后展示。
+
+## LLM 与 Notion 配置
+
+复制环境变量模板，填写配置后重启服务：
+
+```bash
+cp .env.example .env
+```
 
 ```dotenv
 AGENT_MODE=live
@@ -104,56 +147,26 @@ NOTION_TOKEN=你的集成密钥
 NOTION_PARENT_PAGE_ID=普通父页面ID
 ```
 
-LLM 接口需兼容 Chat Completions 和 `tool_choice`。在 Notion 中将源页面与目标父页面授权给该集成，提供读取与创建内容权限。标题关键词应尽量简短。只会在页面中确认发布后创建新子页面；正文作为纯文本段落写入，不做 Markdown 富文本转换。
+LLM 服务需兼容 Chat Completions 与 `tool_choice`。在 Notion 中，将源页面和目标父页面授权给集成，并提供读取与创建内容权限。发布时在指定父页面下创建子页面，正文以纯文本段落保存。
 
-真实模式不会失败后悄悄降级为离线模式。模型调用次数与 Token 用量随任务状态返回；Token 数据取自服务商响应中的 usage。
+当前检索最多返回 3 页，每页读取前 100 个顶层块，正文最多保留 12000 字符；不递归读取子块。API 版本固定为 `2022-06-28`，使用普通页面接口。运行失败时不会自动切换为离线模式。
 
-本版本的 Notion 检索最多返回 3 页；每页只读取前 100 个顶层块，正文最多保留 12000 字符，不递归读取子块。API 版本固定为 `2022-06-28`，面向普通页面；不支持 database/data source 属性映射。资料对象中的 `truncated` 标记说明分页或子块可能未读取。
-
-## API 文档与调用
-
-启动服务后，打开 [Swagger UI](http://127.0.0.1:8000/docs)，可查看接口参数、请求体结构和响应格式，并通过 **Try it out → Execute** 直接发起请求。该地址指向本机，需要先运行服务。
-
-![LLM Task Agent Swagger UI：任务创建、查询与恢复接口以及请求结构](evaluation/api-preview.jpg)
-
-| 接口 | 用途 |
-| --- | --- |
-| `POST /api/tasks` | 提交目标、检索词与工具调用上限，执行到发布确认点或返回失败状态 |
-| `GET /api/tasks` | 查看最近 30 个任务 |
-| `GET /api/tasks/{task_id}` | 查询指定任务的状态、轨迹、草稿和调用指标 |
-| `POST /api/tasks/{task_id}/resume` | 传入 `approved:true` 确认发布并恢复执行；`false` 取消发布 |
-| `GET /api/health` | 检查服务状态与当前运行模式 |
-
-先创建任务，从响应中复制 `task_id`，再查询或确认恢复。真实模式下，确认恢复会写入配置的 Notion 父页面。
-
-### 调用示例
-
-```bash
-curl -X POST http://127.0.0.1:8000/api/tasks \
-  -H 'Content-Type: application/json' \
-  -d '{"goal":"整理 Agent 开发笔记","query":"Agent","max_tool_calls":6}'
-
-curl http://127.0.0.1:8000/api/tasks
-
-curl -X POST http://127.0.0.1:8000/api/tasks/任务ID/resume \
-  -H 'Content-Type: application/json' \
-  -d '{"approved":true}'
-```
-
-支持 `GET /api/tasks/{task_id}` 查询详情。`approved:false` 取消发布；重复恢复已完成任务返回 409。无效输入返回 422，未知任务返回 404。
-
-请求同步执行，响应返回完整任务状态；页面在请求完成后展示轨迹，没有实时流式输出。单进程锁串行执行任务，适合本地单用户演示，不适合直接开放为多用户线上服务。
-
-## 测试与评测
+## 测试与验证
 
 ```bash
 python -m pytest -q
 python -m evaluation.run
 ```
 
-本次验证：12 项测试通过，6 个离线场景全部符合预期，其中 3 个正向场景完成任务，3 个异常场景按预期停止。结果包含本机实际耗时、工具调用次数及明确为零的离线模型调用量。此结果不能表述为真实 LLM 的“100% 任务完成率”。
+| 验证项 | 结果 | 覆盖范围 |
+| --- | --- | --- |
+| 自动化测试 | 12 项通过 | 状态恢复、重复发布拦截、有限重试与修正、预算限制、API、模拟 HTTP 契约 |
+| 正向固定场景 | 3 / 3 完成 | 正常整理、临时检索超时、首次草稿不合格 |
+| 异常固定场景 | 3 / 3 按预期停止 | 无匹配来源、工具预算耗尽、发布前预算耗尽 |
 
-`tool_calls` 统计逻辑工具执行尝试，包括 generate 和失败重试；read 最多包含 3 次 Notion HTTP 请求，因此工具调用数不等于 HTTP 请求数。规划模型调用计入 `llm_calls`，不计入工具预算。`active_seconds` 统计节点内规划、工具与发布耗时，不包含人工等待和全部检查点开销；评测另记录端到端耗时。
+固定场景与本机运行记录见 [evaluation/cases.json](evaluation/cases.json) 和 [evaluation/results.json](evaluation/results.json)。这些结果验证工作流行为，不衡量真实模型生成质量。
+
+`tool_calls` 统计逻辑工具执行尝试，包含生成与失败重试；一次读取工具最多产生 3 次 Notion HTTP 请求。规划模型调用单独计入 `llm_calls`。`active_seconds` 统计节点内的活跃执行时间，排除人工等待；评测另记录端到端耗时。
 
 ## Docker
 
@@ -161,27 +174,28 @@ python -m evaluation.run
 docker compose up --build
 ```
 
-Compose 默认仅绑定本机 8000 端口，数据保存在命名卷 `agent-data`；读取当前目录 `.env` 的配置。容器使用 Python 3.12 和单工作进程。当前机器没有 Docker，配置已提供，尚未实际构建验证。
+Compose 使用 Python 3.12、单工作进程与命名卷 `agent-data`，默认仅绑定本机 8000 端口，并从 `.env` 读取配置。Docker 构建尚未验证。
 
-## 可靠性边界
+## 当前边界
 
-- 已验证的是发布前中断点的跨进程恢复。其他节点会写检查点，但当前 API 不提供任意进程崩溃位置的自动续跑入口。
-- 发布成功后按 task_id 缓存结果，阻止正常流程重复发布；远端写入与本地记录之间无法实现原子事务。不宣称 exactly-once。
-- 发布超时后远端可能已经创建页面，因此停止并提示人工核对，不自动重试写入。
-- 只做一次有限修正与一次临时错误重试，不支持通用纠错或无限循环。
-- 状态和资料保存在本机 SQLite。服务没有用户认证；只用于本地演示，不应直接暴露到公网。
+- 服务面向本地单用户使用，任务同步串行执行，未提供用户认证。
+- 恢复 API 覆盖发布确认中断点；暂未提供任意崩溃位置的自动续跑入口。
+- 发布记录按 `task_id` 缓存，拦截正常流程中的重复发布；远端写入与本地记录之间没有跨系统原子事务。
+- 发布超时后，远端结果可能不确定，服务停止并提示核对，不自动重试写入。
 
-## 目录
+## 项目结构
 
 ```text
-app/agent.py          LangGraph 节点、预算、检查、中断恢复
-app/providers.py      离线资料、LLM 和 Notion HTTP 适配器
-app/main.py           RESTful API
-app/static/index.html 可视化工作台
-tests/                工作流、恢复、API 和模拟 HTTP 契约测试
-evaluation/           固定场景与离线结果
-Dockerfile            容器构建配置
-compose.yaml          本地容器启动与持久卷
+app/
+  agent.py           LangGraph 工作流与任务状态
+  providers.py       离线资料、LLM 与 Notion 适配器
+  main.py            FastAPI 接口
+  static/index.html  可视化工作台
+docs/images/         界面截图
+evaluation/          固定场景、评测脚本与结果
+tests/               工作流、接口与契约测试
+Dockerfile           容器构建配置
+compose.yaml         本地容器运行配置
 ```
 
-技术依据：[LangGraph 持久化](https://docs.langchain.com/oss/python/langgraph/persistence)、[LangGraph 中断](https://docs.langchain.com/oss/python/langgraph/interrupts)、[Notion 标题检索](https://developers.notion.com/reference/post-search)。
+更多操作说明见 [使用与架构说明](DEMO_GUIDE.md)。技术参考：[LangGraph 持久化](https://docs.langchain.com/oss/python/langgraph/persistence)、[中断与恢复](https://docs.langchain.com/oss/python/langgraph/interrupts)、[Notion 标题检索](https://developers.notion.com/reference/post-search)。

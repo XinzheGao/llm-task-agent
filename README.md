@@ -110,7 +110,23 @@ LLM 接口需兼容 Chat Completions 和 `tool_choice`。在 Notion 中将源页
 
 本版本的 Notion 检索最多返回 3 页；每页只读取前 100 个顶层块，正文最多保留 12000 字符，不递归读取子块。API 版本固定为 `2022-06-28`，面向普通页面；不支持 database/data source 属性映射。资料对象中的 `truncated` 标记说明分页或子块可能未读取。
 
-## API 示例
+## API 文档与调用
+
+启动服务后，打开 [Swagger UI](http://127.0.0.1:8000/docs)，可查看接口参数、请求体结构和响应格式，并通过 **Try it out → Execute** 直接发起请求。该地址指向本机，需要先运行服务。
+
+![LLM Task Agent Swagger UI：任务创建、查询与恢复接口以及请求结构](evaluation/api-preview.jpg)
+
+| 接口 | 用途 |
+| --- | --- |
+| `POST /api/tasks` | 提交目标、检索词与工具调用上限，执行到发布确认点或返回失败状态 |
+| `GET /api/tasks` | 查看最近 30 个任务 |
+| `GET /api/tasks/{task_id}` | 查询指定任务的状态、轨迹、草稿和调用指标 |
+| `POST /api/tasks/{task_id}/resume` | 传入 `approved:true` 确认发布并恢复执行；`false` 取消发布 |
+| `GET /api/health` | 检查服务状态与当前运行模式 |
+
+先创建任务，从响应中复制 `task_id`，再查询或确认恢复。真实模式下，确认恢复会写入配置的 Notion 父页面。
+
+### 调用示例
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/tasks \

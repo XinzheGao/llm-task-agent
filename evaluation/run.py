@@ -28,7 +28,7 @@ def main():
                     'seconds': round(time.perf_counter() - start, 6),
                     'tool_calls': result['tool_calls'], 'llm_calls': result['llm_calls'],
                     'tokens': result['input_tokens'] + result['output_tokens'],
-                    'estimated_cost_usd': result['estimated_cost_usd'], 'error': result['error']})
+                    'error': result['error']})
         finally:
             agent.close()
     report = {'generated_at': datetime.now(timezone.utc).isoformat(), 'mode': 'demo',

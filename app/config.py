@@ -17,8 +17,6 @@ class Settings:
     llm_model: str = ''
     notion_token: str = ''
     notion_parent_id: str = ''
-    input_price: float = 0.0
-    output_price: float = 0.0
 
     @classmethod
     def from_env(cls):
@@ -30,8 +28,6 @@ class Settings:
             llm_model=os.getenv('LLM_MODEL', ''),
             notion_token=os.getenv('NOTION_TOKEN', ''),
             notion_parent_id=os.getenv('NOTION_PARENT_PAGE_ID', ''),
-            input_price=float(os.getenv('INPUT_PRICE_PER_MILLION', '0')),
-            output_price=float(os.getenv('OUTPUT_PRICE_PER_MILLION', '0')),
         )
         if settings.mode not in ('demo', 'live'):
             raise ValueError('AGENT_MODE 必须为 demo 或 live')

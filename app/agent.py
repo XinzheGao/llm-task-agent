@@ -201,12 +201,7 @@ class Agent:
             if not self.db.execute('SELECT 1 FROM tasks WHERE id=?', (task_id,)).fetchone():
                 raise KeyError(task_id)
             state = dict(self.graph.get_state(self.config(task_id)).values)
-            rates_set = self.settings.input_price > 0 and self.settings.output_price > 0
             state['mode'] = self.settings.mode
-            state['estimated_cost_usd'] = (0.0 if self.settings.mode == 'demo' else
-                round((state.get('input_tokens', 0) * self.settings.input_price +
-                       state.get('output_tokens', 0) * self.settings.output_price) / 1_000_000, 8)
-                if rates_set and state.get('usage_known') else None)
             return state
 
     def resume(self, task_id, approved):

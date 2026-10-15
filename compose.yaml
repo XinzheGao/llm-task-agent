@@ -10,8 +10,6 @@ services:
       LLM_MODEL: ${LLM_MODEL:-}
       NOTION_TOKEN: ${NOTION_TOKEN:-}
       NOTION_PARENT_PAGE_ID: ${NOTION_PARENT_PAGE_ID:-}
-      INPUT_PRICE_PER_MILLION: ${INPUT_PRICE_PER_MILLION:-0}
-      OUTPUT_PRICE_PER_MILLION: ${OUTPUT_PRICE_PER_MILLION:-0}
     volumes:
       - agent-data:/app/data
 volumes:

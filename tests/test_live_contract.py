@@ -10,7 +10,7 @@ from app.config import Settings
 def test_live_workflow_with_fake_http(tmp_path):
     agent = Agent(Settings(mode='live', db_path=str(tmp_path / 'live.sqlite'),
         llm_api_key='test-only', llm_model='test-model', notion_token='test-only',
-        notion_parent_id='parent', input_price=1, output_price=2))
+        notion_parent_id='parent'))
     requests = []
 
     def handler(request):
@@ -45,7 +45,6 @@ def test_live_workflow_with_fake_http(tmp_path):
         assert result['status'] == 'completed'
         assert result['llm_calls'] == 2
         assert result['input_tokens'] == 200
-        assert result['estimated_cost_usd'] == 0.0004
         assert sum(r.url.path == '/v1/pages' for r in requests) == 1
     finally:
         agent.close()

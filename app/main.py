@@ -27,7 +27,7 @@ def create_app(settings=None):
         yield
         app.state.agent.close()
 
-    app = FastAPI(title='LLM Task Agent · 校招 Demo', lifespan=lifespan)
+    app = FastAPI(title='LLM Task Agent', lifespan=lifespan)
 
     @app.get('/')
     def index():

@@ -1,6 +1,6 @@
 # LLM Task Agent
 
-基于 **Python / LangGraph / FastAPI / SQLite** 的内容整理 Agent 校招 Demo，提供可视化工作台、RESTful API、持久化检查点、发布前中断恢复、有限重试和固定场景评测。
+基于 **Python / LangGraph / FastAPI / SQLite** 的内容整理 Agent 原型，提供可视化工作台、RESTful API、持久化检查点、发布前中断恢复、有限重试和固定场景评测。
 
 **当前版本为最小可运行原型。** 默认离线模式无需密钥，使用内置笔记与固定模板。真实模式接入支持工具调用的 LLM API 和 Notion API，代码及模拟 HTTP 契约测试已完成，尚未使用真实账号联调。不能把离线运行结果当作真实模型能力或线上效果。
 
@@ -26,7 +26,7 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 5. 选择“首次检索超时”，创建新任务，展示一次重试；选择“首次草稿不合格”，展示检查后的有限修正。
 6. 把工具调用上限改为 `1`，展示预算耗尽后停止执行；检索词改为不存在的主题，展示无资料时停止而不生成内容。
 
-详细讲解见 [演示与面试说明](DEMO_GUIDE.md)。
+详细讲解见 [使用与架构说明](DEMO_GUIDE.md)。
 
 ## 实现范围
 
@@ -37,7 +37,7 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 | State / Context | 目标、计划、资料、草稿、计数、轨迹和错误通过 State 传递；SqliteSaver 按 thread_id 保存检查点 |
 | 中断与恢复 | 发布前调用 interrupt；重启后以同一 task_id 和 Command(resume=...) 继续执行，已完成的检索与生成不会重跑 |
 | 失败处理 | 临时读取/生成错误最多重试一次；正文与引用不合格最多修正一次；总工具调用次数有上限 |
-| 发布 | 用户确认后写入本地演示文档或 Notion 普通父页面下的新子页面 |
+| 发布 | 用户确认后写入本地文档或 Notion 普通父页面下的新子页面 |
 | 可观测性 | 执行轨迹、逻辑工具调用数、模型请求数、Token、活跃耗时、可配置单价的成本估算 |
 | 服务与部署 | FastAPI API、本地网页、Dockerfile 和 Compose；Docker 构建未在本次环境验证 |
 | 评测 | 6 个离线固定场景、12 项自动化测试；结果保存在 evaluation/results.json |

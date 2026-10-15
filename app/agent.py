@@ -119,7 +119,7 @@ class Agent:
         try:
             if tool == 'search':
                 if s['scenario'] == 'transient_search' and s['retry_count'] == 0:
-                    raise TimeoutError('演示注入：首次检索超时')
+                    raise TimeoutError('故障注入：首次检索超时')
                 result['pages'] = self.provider.search(s['plan']['query'])
                 if not result['pages']:
                     raise ValueError('没有匹配资料，请更换标题检索词')
@@ -164,7 +164,7 @@ class Agent:
 
     def approval(self, s):
         approved = interrupt({'message': '确认发布这份草稿？', 'title': s['plan']['title'],
-                              'destination': '本地演示文档' if self.settings.mode == 'demo'
+                              'destination': '本地文档' if self.settings.mode == 'demo'
                               else self.settings.notion_parent_id})
         return {'status': 'approved' if approved is True else 'cancelled',
                 'trace': self.event(s, 'approval', '用户确认' if approved is True else '用户取消')}

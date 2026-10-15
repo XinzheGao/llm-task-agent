@@ -116,7 +116,7 @@ class Provider:
             if existing:
                 return json.loads(existing[0])
         if self.s.mode == 'demo':
-            result = {'id': task_id, 'url': None, 'destination': '本地演示文档', 'title': title, 'body': body}
+            result = {'id': task_id, 'url': None, 'destination': '本地文档', 'title': title, 'body': body}
         else:
             # A write timeout is intentionally not auto-retried: the remote commit may have happened.
             chunks = [body[i:i + 1800] for i in range(0, len(body), 1800)]
